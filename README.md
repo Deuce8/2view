@@ -1,2 +1,2 @@
 # 2view
-Simple image viewer written in C++ and Qt.
+Simple image viewer written in Python and PyQt6.

@@ -119,8 +119,8 @@ float Canvas::getScale() const {
     if(image.isNull())
         return 1.0;
 
-    float sx = width() / image.width();
-    float sy = height() / image.height();
+    float sx = static_cast<float>(width()) / image.width();
+    float sy = static_cast<float>(height()) / image.height();
 
     return std::min(sx, sy);
 }

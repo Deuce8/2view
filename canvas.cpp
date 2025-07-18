@@ -12,11 +12,9 @@
 
 #pragma region Constructor
 
-Canvas::Canvas(QWidget *parent) : QWidget(parent) {
+Canvas::Canvas(QWidget *parent) : QLabel(parent) {
     view = new View(*this);
     draw = new Draw(*this, *view);
-
-    image = QPixmap();
 
     setFocusPolicy(Qt::ClickFocus);
     setWindowFlags(Qt::Window);
@@ -35,7 +33,7 @@ void Canvas::loadImage(QString &filepath){
     if (loadedImage.isNull())
         return;
 
-    image = loadedImage;
+    setPixmap(loadedImage);
     view->resetView();
 }
 
@@ -57,7 +55,7 @@ void Canvas::dropEvent(QDropEvent *event) {
     if(loadedImage.isNull())
         return;
 
-    image = loadedImage;
+    setPixmap(loadedImage);
     view->resetView();
 }
 
@@ -92,41 +90,41 @@ void Canvas::resizeEvent(QResizeEvent *){
 #pragma region Getters
 
 int Canvas::getImageWidth() const {
-    if(image.isNull())
+    if(pixmap().isNull())
         return 1.0;
         
-    return image.width();
+    return pixmap().width();
 }
 
 int Canvas::getImageHeight() const {
-    if(image.isNull())
+    if(pixmap().isNull())
         return 1.0;
 
-    return image.height();
+    return pixmap().height();
 }
 
 int Canvas::getSizePrimary() const {
-    if(image.isNull())
+    if(pixmap().isNull())
         return 1.0;
 
-    if(image.width() > image.height())
-        return image.width();
+    if(pixmap().width() > pixmap().height())
+        return pixmap().width();
         
-    return image.height();
+    return pixmap().height();
 }
 
 float Canvas::getScale() const {
-    if(image.isNull())
+    if(pixmap().isNull())
         return 1.0;
 
-    float sx = static_cast<float>(width()) / image.width();
-    float sy = static_cast<float>(height()) / image.height();
+    float sx = static_cast<float>(width()) / pixmap().width();
+    float sy = static_cast<float>(height()) / pixmap().height();
 
     return std::min(sx, sy);
 }
 
 QPixmap Canvas::getImage() const {
-    return image;
+    return pixmap();
 }
 
 #pragma endregion Getters

@@ -1,7 +1,7 @@
 #ifndef CANVAS_H
 #define CANVAS_H
 
-#include <QWidget>
+#include <QLabel>
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QDragEnterEvent>
@@ -9,7 +9,7 @@
 class Draw;
 class View;
 
-class Canvas : public QWidget {
+class Canvas : public QLabel {
     Q_OBJECT
 
 public:
@@ -34,7 +34,6 @@ protected:
     void dropEvent(QDropEvent *event) override;
 
 private:
-    QPixmap image;
     Draw* draw;
     View* view;
 };

@@ -12,7 +12,7 @@ void Draw::paintEvent(){
     QPainter painter(&canvas);
     painter.translate(view.getOffset());
     painter.scale(view.getZoom() * canvas.getScale(), view.getZoom() * canvas.getScale());
-    painter.drawPixmap(0, 0, canvas.getImage());
+    painter.drawPixmap(0, 0, canvas.pixmap());
 
     QPen pen(QColor(255, 255, 255, 127));
     pen.setCosmetic(true);

@@ -20,7 +20,7 @@ class Draw():
         painter = QPainter(self.canvas)
         painter.translate(self.view.getOffset())
         painter.scale(self.view.getZoom() * self.canvas.getScale(), self.view.getZoom() * self.canvas.getScale())
-        painter.drawPixmap(0, 0, self.canvas.getImage())
+        painter.drawPixmap(0, 0, self.canvas.pixmap())
         
         pen = QPen(QColor(255, 255, 255, 127))
         pen.setCosmetic(True)

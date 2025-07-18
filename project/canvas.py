@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtWidgets import QWidget
+from PyQt6.QtWidgets import QLabel
 from PyQt6.QtGui import QShortcut
 from PyQt6.QtGui import QKeySequence
 from PyQt6.QtGui import QPalette
@@ -16,7 +16,7 @@ from PyQt6.QtGui import QResizeEvent
 from project.view import View
 from project.draw import Draw
 
-class Canvas(QWidget):
+class Canvas(QLabel):
     #region Constructor
 
     def __init__(self):
@@ -24,8 +24,6 @@ class Canvas(QWidget):
 
         self.view = View(self)
         self.draw = Draw(self, self.view)
-
-        self.image = QPixmap()
 
         self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         self.setWindowFlags(Qt.WindowType.Window)
@@ -43,7 +41,7 @@ class Canvas(QWidget):
         if loadedImage.isNull():
             return
         
-        self.image = loadedImage
+        self.setPixmap(loadedImage)
         self.view.resetView()
 
     def dragEnterEvent(self, event=QDragEnterEvent):
@@ -63,7 +61,7 @@ class Canvas(QWidget):
         if loadedImage.isNull():
             return
         
-        self.image = loadedImage
+        self.setPixmap(loadedImage)
         self.view.resetView()
 
     #endregion Input
@@ -91,38 +89,38 @@ class Canvas(QWidget):
     #region Getters
 
     def getImageWidth(self) -> int:
-        if self.image.isNull():
+        if self.pixmap().isNull():
             return 1.0
         
-        return self.image.width()
+        return self.pixmap().width()
 
     def getImageHeight(self) -> int:
-        if self.image.isNull():
+        if self.pixmap().isNull():
             return 1.0
         
-        return self.image.height()
+        return self.pixmap().height()
 
     def getSizePrimary(self) -> int:
-        if self.image.isNull():
+        if self.pixmap().isNull():
             return 1.0
         
-        if self.image.width() > self.image.height():
-            return self.image.width()
+        if self.pixmap().width() > self.pixmap().height():
+            return self.pixmap().width()
         
-        return self.image.height()
+        return self.pixmap().height()
 
 
     def getScale(self) -> float:
-        if self.image.isNull():
+        if self.pixmap().isNull():
             return 1.0
         
-        sx = float(self.width()) / self.image.width()
-        sy = float(self.height()) / self.image.height()
+        sx = float(self.width()) / self.pixmap().width()
+        sy = float(self.height()) / self.pixmap().height()
 
         return min(sx, sy)
     
     def getImage(self) -> QPixmap:
-        return self.image
+        return self.pixmap()
     
     #endregion Getters
 

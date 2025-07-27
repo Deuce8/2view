@@ -2,43 +2,121 @@
 
 #include <QMimeData>
 #include <QPalette>
-#include <QString>
 #include <QShortcut>
 #include <QKeySequence>
+#include <QPainter>
 #include <Qt>
-
-#include "draw.h"
-#include "view.h"
 
 #pragma region Constructor
 
 Canvas::Canvas(QWidget *parent) : QLabel(parent) {
-    view = new View(*this);
-    draw = new Draw(*this, *view);
-
     setFocusPolicy(Qt::ClickFocus);
     setWindowFlags(Qt::Window);
     setAcceptDrops(true);
     setWindowTitle(tr("2View"));
     setStyleSheet(QString("background-color: %1").arg(qApp->palette().color(QPalette::Base).name()));
 
-    connect(new QShortcut(QKeySequence(Qt::Key_Space), this), &QShortcut::activated, this, [this]() { this->view->resetView(); });
+    connect(new QShortcut(QKeySequence(Qt::Key_Space), this), &QShortcut::activated, this, &Canvas::resetView);
 }
 
 #pragma endregion Constructor
-#pragma region Input
+#pragma region Public Functions
 
-void Canvas::loadImage(QString &filepath){
+void Canvas::loadImage(const QString &filepath){
     const QPixmap loadedImage(filepath);
     if (loadedImage.isNull())
         return;
 
     setPixmap(loadedImage);
-    view->resetView();
+    resetView();
+}
+
+#pragma endregion Public Functions
+#pragma region Protected
+
+void Canvas::paintEvent(QPaintEvent *) {
+    if(pixmap().isNull())
+        return;
+
+    QPainter painter(this);
+    painter.translate(offset);
+    painter.scale(zoom * scale(), zoom * scale());
+    painter.drawPixmap(0, 0, pixmap());
+
+    QPen pen(QColor(255, 255, 255, 127));
+    pen.setCosmetic(true);
+    painter.setPen(pen);
+
+    //Border and Grid
+    const int w = pixmap().width();
+    const int h = pixmap().height();
+
+    //Border
+    painter.drawLines(QVector<QLine>{
+        QLine(0, 0, 0, h),
+        QLine(w, 0, w, h),
+        QLine(0, 0, w, 0),
+        QLine(0, h, w, h)
+    });
+
+    //Grid
+    if(GRID_THRESHOLD <= sizePrimary() / zoom)
+        return;
+
+    QVector<QLine> lines;
+
+    for (int x = 1; x < w; x++)
+        lines.append(QLine(x, 0, x, h));
+    for (int y = 1; y < h; y++)
+        lines.append(QLine(0, y, w, y));
+
+    painter.drawLines(lines);
+}
+
+void Canvas::mousePressEvent(QMouseEvent *event) {
+    if (event->button() != Qt::MiddleButton)
+        return;
+     
+    panning = true;
+    last_point = event->position();
+}
+
+void Canvas::mouseReleaseEvent(QMouseEvent *event) {
+    if (event->button() != Qt::MiddleButton)
+        return;
+     
+    panning = false;
+}
+
+void Canvas::mouseMoveEvent(QMouseEvent *event) {
+    if(!panning)
+        return;
+
+    offset += event->position() - last_point;
+    last_point = event->position();
+
+    clampOffset();
+    update();
+}
+
+void Canvas::wheelEvent(QWheelEvent *event) {
+    const float old_zoom = zoom;
+
+    zoom *= event->angleDelta().y() > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
+    zoom = std::max(ZOOM_MIN, std::min(zoom, float(sizePrimary()) / ZOOM_MAX));
+
+    offset = (offset - event->position()) * (zoom / old_zoom) + event->position();
+
+    clampOffset();
+    update();
+}
+
+void Canvas::resizeEvent(QResizeEvent *){
+    resetView();
 }
 
 void Canvas::dragEnterEvent(QDragEnterEvent *event) {
-    if (event->mimeData()->hasUrls() || event->mimeData()->hasImage())
+    if (event->mimeData()->hasUrls())
         event->acceptProposedAction();
 }
 
@@ -51,71 +129,22 @@ void Canvas::dropEvent(QDropEvent *event) {
     if(urls.isEmpty())
         return;
     
-    const QPixmap loadedImage = QPixmap(urls.first().toLocalFile());
-    if(loadedImage.isNull())
-        return;
-
-    setPixmap(loadedImage);
-    view->resetView();
+    loadImage(urls.first().toLocalFile());
 }
 
-#pragma endregion Input
-#pragma region Qt Events
+#pragma endregion Protected
+#pragma region Private Functions
 
-void Canvas::paintEvent(QPaintEvent *) {
-    draw->paintEvent();
-}
-
-void Canvas::mousePressEvent(QMouseEvent *event) {
-    view->mousePressEvent(*event);
-}
-
-void Canvas::mouseReleaseEvent(QMouseEvent *event) {
-    view->mouseReleaseEvent(*event);
-}
-
-void Canvas::mouseMoveEvent(QMouseEvent *event) {
-    view->mouseMoveEvent(*event);
-}
-
-void Canvas::wheelEvent(QWheelEvent *event) {
-    view->wheelEvent(*event);
-}
-
-void Canvas::resizeEvent(QResizeEvent *){
-    view->resetView();
-}
-
-#pragma endregion Qt Events
-#pragma region Getters
-
-int Canvas::getImageWidth() const {
+int Canvas::sizePrimary() const {
     if(pixmap().isNull())
-        return 1.0;
-        
-    return pixmap().width();
+        return 0.0;
+
+    return std::max(pixmap().width(), pixmap().height());
 }
 
-int Canvas::getImageHeight() const {
+float Canvas::scale() const {
     if(pixmap().isNull())
-        return 1.0;
-
-    return pixmap().height();
-}
-
-int Canvas::getSizePrimary() const {
-    if(pixmap().isNull())
-        return 1.0;
-
-    if(pixmap().width() > pixmap().height())
-        return pixmap().width();
-        
-    return pixmap().height();
-}
-
-float Canvas::getScale() const {
-    if(pixmap().isNull())
-        return 1.0;
+        return 0.0;
 
     float sx = static_cast<float>(width()) / pixmap().width();
     float sy = static_cast<float>(height()) / pixmap().height();
@@ -123,8 +152,29 @@ float Canvas::getScale() const {
     return std::min(sx, sy);
 }
 
-QPixmap Canvas::getImage() const {
-    return pixmap();
+#pragma endregion Private Functions
+#pragma region Private Slots
+
+void Canvas::resetView(){
+    zoom = 1;
+    panning = false;
+    offset = QPointF(0, 0);
+    last_point = QPointF(0, 0);
+
+    clampOffset();
+    update();
 }
 
-#pragma endregion Getters
+void Canvas::clampOffset(){
+    const float w = width();
+    const float h = height();
+    const float zoomed_scale = zoom * scale();
+    const float view_w = pixmap().width() * zoomed_scale;
+    const float view_h = pixmap().height() * zoomed_scale;
+    const float margins = MARGINS * zoomed_scale;
+
+    offset = QPointF((view_w < w) ? (w - view_w) / 2 : std::max(std::min(float(offset.x()), margins), w - view_w - margins), 
+                     (view_h < h) ? (h - view_h) / 2 : std::max(std::min(float(offset.y()), margins), h - view_h - margins));
+}
+
+#pragma endregion Private Slots

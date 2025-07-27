@@ -5,7 +5,7 @@ Simple image viewer written in C++ and Qt6.
 
 ```bash
 git clone https://github.com/Deuce8/2view.git
-cd 2write
+cd 2view
 mkdir build
 cd build
 cmake ..

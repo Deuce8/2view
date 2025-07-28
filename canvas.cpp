@@ -23,7 +23,7 @@ Canvas::Canvas(QWidget *parent) : QLabel(parent) {
     drawGrid = settings.value("drawGird", true).toBool();
     drawBorder = settings.value("drawBorder", true).toBool();
     gridColor = settings.value("gridColor", "#ffffff").value<QColor>();
-    zoomFactor = settings.value("zoomFactor", 1.25).toInt();
+    zoomFactor = settings.value("zoomFactor", 1.25f).toFloat();
     zoomMaximum = settings.value("zoomMaximum", 10).toFloat();
     zoomMinimum = settings.value("zoomMinimum", 0.5f).toFloat();
     margins = settings.value("margins", 32).toInt();

@@ -6,6 +6,7 @@
 #include <QKeySequence>
 #include <QPainter>
 #include <Qt>
+#include <QSettings>
 
 #pragma region Constructor
 
@@ -17,6 +18,29 @@ Canvas::Canvas(QWidget *parent) : QLabel(parent) {
     setStyleSheet(QString("background-color: %1").arg(qApp->palette().color(QPalette::Base).name()));
 
     connect(new QShortcut(QKeySequence(Qt::Key_Space), this), &QShortcut::activated, this, &Canvas::resetView);
+
+    QSettings settings("Deuce8", "2view");
+    drawGrid = settings.value("drawGird", true).toBool();
+    drawBorder = settings.value("drawBorder", true).toBool();
+    gridColor = settings.value("gridColor", "#ffffff").value<QColor>();
+    zoomFactor = settings.value("zoomFactor", 1.25).toInt();
+    zoomMaximum = settings.value("zoomMaximum", 10).toFloat();
+    zoomMinimum = settings.value("zoomMinimum", 0.5f).toFloat();
+    margins = settings.value("margins", 32).toInt();
+    gridThreshold = settings.value("gridThreshold", 32).toInt();
+
+    //Write default settings
+    if (settings.contains("drawGird"))
+        return;
+
+    settings.setValue("drawGird", true);
+    settings.setValue("drawBorder", true);
+    settings.setValue("gridColor", "#ffffff");
+    settings.setValue("zoomFactor", 1.25);
+    settings.setValue("zoomMaximum", 10);
+    settings.setValue("zoomMinimum", 0.5f);
+    settings.setValue("margins", 32);
+    settings.setValue("gridThreshold", 32);
 }
 
 #pragma endregion Constructor
@@ -43,7 +67,7 @@ void Canvas::paintEvent(QPaintEvent *) {
     painter.scale(zoom * scale(), zoom * scale());
     painter.drawPixmap(0, 0, pixmap());
 
-    QPen pen(QColor(255, 255, 255, 127));
+    QPen pen(gridColor);
     pen.setCosmetic(true);
     painter.setPen(pen);
 
@@ -52,15 +76,16 @@ void Canvas::paintEvent(QPaintEvent *) {
     const int h = pixmap().height();
 
     //Border
-    painter.drawLines(QVector<QLine>{
-        QLine(0, 0, 0, h),
-        QLine(w, 0, w, h),
-        QLine(0, 0, w, 0),
-        QLine(0, h, w, h)
-    });
+    if(drawBorder)
+        painter.drawLines(QVector<QLine>{
+            QLine(0, 0, 0, h),
+            QLine(w, 0, w, h),
+            QLine(0, 0, w, 0),
+            QLine(0, h, w, h)
+        });
 
     //Grid
-    if(GRID_THRESHOLD <= sizePrimary() / zoom)
+    if(gridThreshold <= sizePrimary() / zoom || !drawGrid)
         return;
 
     QVector<QLine> lines;
@@ -102,8 +127,8 @@ void Canvas::mouseMoveEvent(QMouseEvent *event) {
 void Canvas::wheelEvent(QWheelEvent *event) {
     const float old_zoom = zoom;
 
-    zoom *= event->angleDelta().y() > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
-    zoom = std::max(ZOOM_MIN, std::min(zoom, float(sizePrimary()) / ZOOM_MAX));
+    zoom *= event->angleDelta().y() > 0 ? zoomFactor : 1 / zoomFactor;
+    zoom = std::max(zoomMinimum, std::min(zoom, float(sizePrimary()) / zoomMaximum));
 
     offset = (offset - event->position()) * (zoom / old_zoom) + event->position();
 
@@ -171,10 +196,10 @@ void Canvas::clampOffset(){
     const float zoomed_scale = zoom * scale();
     const float view_w = pixmap().width() * zoomed_scale;
     const float view_h = pixmap().height() * zoomed_scale;
-    const float margins = MARGINS * zoomed_scale;
+    const float scaled_margins = margins * zoomed_scale;
 
-    offset = QPointF((view_w < w) ? (w - view_w) / 2 : std::max(std::min(float(offset.x()), margins), w - view_w - margins), 
-                     (view_h < h) ? (h - view_h) / 2 : std::max(std::min(float(offset.y()), margins), h - view_h - margins));
+    offset = QPointF((view_w < w) ? (w - view_w) / 2 : std::max(std::min(float(offset.x()), scaled_margins), w - view_w - scaled_margins), 
+                     (view_h < h) ? (h - view_h) / 2 : std::max(std::min(float(offset.y()), scaled_margins), h - view_h - scaled_margins));
 }
 
 #pragma endregion Private Slots

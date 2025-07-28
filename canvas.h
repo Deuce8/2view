@@ -33,11 +33,14 @@ private:
     int sizePrimary() const;
     float scale() const;
 
-    static constexpr float ZOOM_FACTOR = 1.25f;
-    static constexpr float ZOOM_MAX = 10;
-    static constexpr float ZOOM_MIN = 0.5f;
-    static constexpr int MARGINS = 16;
-    static constexpr int GRID_THRESHOLD = 25;
+    bool drawGrid;
+    bool drawBorder;
+    QColor gridColor;
+    float zoomFactor;
+    float zoomMaximum;
+    float zoomMinimum;
+    int margins;
+    int gridThreshold;
 
 private slots:
     void resetView();

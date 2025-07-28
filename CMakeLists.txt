@@ -12,10 +12,10 @@ add_executable(2view main.cpp canvas.cpp)
 target_link_libraries(2view PRIVATE Qt6::Widgets Qt6::Gui)
 
 install(TARGETS 2view
-    RUNTIME DESTINATION $ENV{HOME}/.local/bin
+    RUNTIME DESTINATION /usr/local/bin
 )
 
-install(CODE "file(WRITE \"\$ENV{HOME}/.local/share/applications/2view.desktop\" [[
+install(CODE "file(WRITE \"/usr/local/share/applications/2view.desktop\" [[
 [Desktop Entry]
 Name=2view
 Exec=2view %F

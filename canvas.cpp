@@ -15,7 +15,6 @@ Canvas::Canvas(QWidget *parent) : QLabel(parent) {
     setWindowFlags(Qt::Window);
     setAcceptDrops(true);
     setWindowTitle(tr("2View"));
-    setStyleSheet(QString("background-color: %1").arg(qApp->palette().color(QPalette::Base).name()));
 
     connect(new QShortcut(QKeySequence(Qt::Key_Space), this), &QShortcut::activated, this, &Canvas::resetView);
 
@@ -99,17 +98,11 @@ void Canvas::paintEvent(QPaintEvent *) {
 }
 
 void Canvas::mousePressEvent(QMouseEvent *event) {
-    if (event->button() != Qt::MiddleButton)
-        return;
-     
     panning = true;
     last_point = event->position();
 }
 
 void Canvas::mouseReleaseEvent(QMouseEvent *event) {
-    if (event->button() != Qt::MiddleButton)
-        return;
-     
     panning = false;
 }
 
@@ -141,20 +134,23 @@ void Canvas::resizeEvent(QResizeEvent *){
 }
 
 void Canvas::dragEnterEvent(QDragEnterEvent *event) {
-    if (event->mimeData()->hasUrls())
+    if (event->mimeData()->hasUrls() || event->mimeData()->hasImage())
         event->acceptProposedAction();
 }
 
 void Canvas::dropEvent(QDropEvent *event) {
-    const QMimeData *mimeData = event->mimeData();
-    if (!mimeData->hasUrls()) 
+    const QPixmap image = qvariant_cast<QPixmap>(event->mimeData()->imageData());
+    if (!image.isNull()){
+        setPixmap(image);
+        resetView();
         return;
+    }
 
-    const QList<QUrl> urls = mimeData->urls();
-    if(urls.isEmpty())
-        return;
-    
-    loadImage(urls.first().toLocalFile());
+    const QList<QUrl> urls = event->mimeData()->urls();
+    if(!urls.isEmpty()){
+        setPixmap(QPixmap(urls.first().toLocalFile()));
+        resetView();
+    }
 }
 
 #pragma endregion Protected
